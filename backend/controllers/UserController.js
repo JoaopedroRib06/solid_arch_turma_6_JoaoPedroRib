@@ -2,8 +2,8 @@ const User = require('../models/User')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const createUserToken = require('../helpers/create-user-token')
-const getTokens = require('../helpers/get-tokens')
-const { decode } = require('jsonwebtoken')
+const getToken = require('../helpers/get-tokens')
+const getUserToken = require('../helpers/get-user-by-token')
 
 module.exports = class UserController {
     static async register(req, res) {
@@ -20,6 +20,7 @@ module.exports = class UserController {
         res.status(422).json({message: 'Telefone é obrigatório'})
         return
       }
+
       if(!password){
         res.status(422).json({message: 'Senha é obrigatória'})
         return
@@ -118,7 +119,55 @@ module.exports = class UserController {
     }
 
     static async editUser(req,res){
-      res.status(200).json({message:'Usuário atualizado com sucesso'})
+      const id = get.params.id
+      const token = getToken(req)
+      const user =  await getUserByToken(token)
+      if(!user){
+        res.status(422).json({message:'Usuário não disponível para edição'})
+        return
+      }
+      const {name, email, phone, password, confirmpassword} = req.body
+      let image = ''
+      
+
+      if(!name){
+        res.status(422).json({message: 'Nome é obrigatório'})
+        return
+      }
+      if(!email){
+        res.status(422).json({message:'Email é obrigatório'})
+        return
+      }
+      if(!phone){
+        res.status(422).json({message: 'Telefone é obrigatório'})
+        return
+      }
+
+      if(!password){
+        res.status(422).json({message: 'Senha é obrigatória'})
+        return
+      }
+      if(!confirmpassword){
+        res.status(422).json({message: 'Confirmar a senha é obrigatório'})
+        return
+      }
+      if(password !== confirmpassword){
+        res.status(422).json({message:'As senhas não batem'})
+        return
+      }
+
+      const userExists = await User.findOne({email: email})
+
+      if(userExists.email === email && userExists){
+        res.status(422).json({message: 'Existe um problema de chave e-mail com a edição.'})
+        return
+      }
+
+      const salt = await bcrypt.genSalt(12)
+      const passwordHash = await bcrypt.hash(password, salt)
+
+      
+
     }
 }
 
